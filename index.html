@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Human Atlas - 3D</title>
+<style>
+*{box-sizing:border-box;font-family:Inter,system-ui}
+body{margin:0;background:#f3f1ec;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+header{height:52px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+header b{font-size:18px}
+.wrap{flex:1;display:flex;overflow:hidden}
+.left{width:260px;background:#fff;border-right:1px solid #ddd;overflow:auto;padding:12px}
+.right{width:300px;background:#fff;border-left:1px solid #ddd;overflow:auto;padding:12px}
+#canvas{flex:1;background:radial-gradient(#fff,#e9e5dc)}
+.mus{padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center;margin:4px 0}
+.mus.active{background:#111;color:#fff}
+.mus.hidden{opacity:.3}
+.btn{width:100%;padding:11px;border-radius:12px;border:none;cursor:pointer;font-weight:600;margin-top:8px}
+.btn.black{background:#111;color:#fff}
+.btn.white{background:#fff;border:1px solid #ddd}
+#mobileInfo{display:none}
+@media(max-width:900px){
+  .left{width:180px}.right{display:none}
+  #mobileInfo{display:block;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:12px;border-radius:16px 16px 0 0;max-height:55vh;overflow:auto}
+}
+</style>
+<script type="importmap">
+{
+ "imports": {
+   "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+   "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+ }
+}
+</script>
+</head>
+<body>
+<header><b>Human Atlas</b><span style="font-size:12px;opacity:.6">2,234 pieces • 3D</span></header>
+<div class="wrap">
+  <div class="left">
+    <input id="search" placeholder="Search muscle" style="width:100%;padding:9px;border-radius:10px;border:1px solid #ddd">
+    <div style="margin-top:12px;font-weight:700;font-size:13px">Muscles</div>
+    <div id="list"></div>
+  </div>
+  <div id="canvas"></div>
+  <div class="right" id="deskInfo">
+    <h3 id="name" style="margin:4px 0">Right Gracilis</h3>
+    <small id="fma" style="background:#f0f0f0;padding:4px 8px;border-radius:6px">FMA:22350</small>
+    <p id="desc" style="font-size:13px;color:#444;line-height:1.4;margin-top:10px">The most superficial and medial muscle of the thigh. The most slender muscle in the human body.</p>
+    <p style="font-size:13px"><b>Origin:</b> <span id="origin">Pubic symphysis</span><br><b>Insertion:</b> <span id="insert">Medial tibia</span><br><b>Action:</b> <span id="action">Flexes knee, adducts thigh</span></p>
+    <button class="btn black" id="removeBtn">Remove / Add</button>
+    <button class="btn white" id="isoBtn">Isolate</button>
+    <button class="btn white" id="resetBtn">Reset All</button>
+  </div>
+</div>
+<div id="mobileInfo">
+  <h3 id="mName" style="margin:0">Right Gracilis</h3>
+  <small id="mFma">FMA:22350</small>
+  <p id="mDesc" style="font-size:13px;color:#555">Most slender muscle.</p>
+  <button class="btn black" id="mRemove">Remove / Add</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const musclesData = [
+  {name:'Right Gracilis', fma:'FMA:22350', color:0xff8a8a, pos:[0.25,-1.1,0], desc:'Most superficial medial thigh muscle. Most slender muscle.', origin:'Pubic symphysis', insert:'Medial tibia', action:'Flexes knee, adducts thigh'},
+  {name:'Sartorius', fma:'FMA:22353', color:0xffc07a, pos:[-0.25,-1.0,0.1], desc:'Longest muscle in human body, crosses thigh.', origin:'ASIS', insert:'Proximal tibia', action:'Flexes hip & knee'},
+  {name:'Rectus Femoris', fma:'FMA:22428', color:0x8ae0ff, pos:[0.2,-0.9,0.2], desc:'Part of quadriceps, powerful knee extensor.', origin:'Ilium', insert:'Patella', action:'Extends knee'},
+  {name:'Biceps Brachii', fma:'FMA:37682', color:0xff6b6b, pos:[0.7,-0.1,0], desc:'Two-headed muscle of arm, flexes elbow.', origin:'Scapula', insert:'Radius', action:'Flexes elbow & supinates'},
+  {name:'Pectoralis Major', fma:'FMA:27816', color:0xffaaaa, pos:[0.35,0.25,0.2], desc:'Large chest muscle, adducts arm.', origin:'Clavicle & Sternum', insert:'Humerus', action:'Adducts & medially rotates arm'},
+  {name:'Adductor Longus', fma:'FMA:22441', color:0xa8ff8a, pos:[0.18,-1.0,-0.05], desc:'Medial thigh muscle, adducts thigh.', origin:'Pubis', insert:'Femur', action:'Adducts thigh'},
+];
+
+let selected = musclesData[0];
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf8f7f5);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0,0.2,3);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('canvas').appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping=true;
+controls.target.set(0,-0.2,0);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.8));
+const light = new THREE.DirectionalLight(0xffffff,1); light.position.set(2,3,4); scene.add(light);
+
+// адам денесінің базасы (қаңқа)
+const bodyGroup = new THREE.Group();
+const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.7,8,16), new THREE.MeshStandardMaterial({color:0xe8e0d0, transparent:true, opacity:0.25}));
+torso.position.y=0.1; bodyGroup.add(torso);
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.28,24,24), new THREE.MeshStandardMaterial({color:0xe8e0d0, transparent:true, opacity:0.25}));
+head.position.y=0.85; bodyGroup.add(head);
+scene.add(bodyGroup);
+
+const muscleMeshes = [];
+musclesData.forEach(d=>{
+  const geo = new THREE.CapsuleGeometry(0.09,0.45,6,12);
+  const mat = new THREE.MeshStandardMaterial({color:d.color});
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...d.pos);
+  m.userData = d;
+  // аяққа қарату
+  if(d.name.includes('Gracilis')||d.name.includes('Sartorius')||d.name.includes('Femoris')||d.name.includes('Adductor')) m.rotation.z=0.15;
+  else m.rotation.z=-0.3;
+  muscleMeshes.push(m);
+  scene.add(m);
+});
+
+function selectMuscle(d){
+  selected=d;
+  document.getElementById('name').textContent=d.name; document.getElementById('fma').textContent=d.fma;
+  document.getElementById('desc').textContent=d.desc; document.getElementById('origin').textContent=d.origin;
+  document.getElementById('insert').textContent=d.insert; document.getElementById('action').textContent=d.action;
+  document.getElementById('mName').textContent=d.name; document.getElementById('mFma').textContent=d.fma; document.getElementById('mDesc').textContent=d.desc;
+  muscleMeshes.forEach(mm=>{
+    mm.material.emissive.setHex(mm.userData.name===d.name?0x333333:0x000000);
+    mm.scale.setScalar(mm.userData.name===d.name?1.15:1);
+  });
+  renderList();
+}
+
+function renderList(){
+  const list=document.getElementById('list'); list.innerHTML='';
+  const q=document.getElementById('search').value.toLowerCase();
+  musclesData.filter(m=>m.name.toLowerCase().includes(q)).forEach(m=>{
+    const div=document.createElement('div'); div.className='mus'+(selected.name===m.name?' active':'')+(m.hidden?' hidden':'');
+    div.innerHTML=`<span>${m.name}</span><span style="opacity:.5">●</span>`;
+    div.onclick=()=>selectMuscle(m); list.appendChild(div);
+  });
+}
+
+// raycast - бассаң таңдалады
+const raycaster=new THREE.Raycaster(), mouse=new THREE.Vector2();
+renderer.domElement.addEventListener('click',e=>{
+  const rect=renderer.domElement.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1; mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(muscleMeshes);
+  if(hits.length) selectMuscle(hits[0].object.userData);
+});
+
+function toggleRemove(){selected.hidden=!selected.hidden; const mm=muscleMeshes.find(x=>x.userData.name===selected.name); if(mm) mm.visible=!selected.hidden; renderList();}
+document.getElementById('removeBtn').onclick=toggleRemove; document.getElementById('mRemove').onclick=toggleRemove;
+document.getElementById('isoBtn').onclick=()=>{muscleMeshes.forEach(mm=>{const isSel=mm.userData.name===selected.name; mm.visible=isSel; mm.userData.hidden=!isSel;}); musclesData.forEach(m=>m.hidden=m.name!==selected.name); renderList();}
+document.getElementById('resetBtn').onclick=()=>{muscleMeshes.forEach(mm=>{mm.visible=true; mm.userData.hidden=false}); musclesData.forEach(m=>m.hidden=false); renderList();}
+document.getElementById('search').oninput=renderList;
+
+function animate(){requestAnimationFrame(animate); controls.update(); renderer.render(scene,camera);}
+animate();
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);});
+selectMuscle(musclesData[0]); renderList();
+</script>
+</body>
+</html>
