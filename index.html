@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Компьютер Ішкі Құрылымы - 3D</title>
+<style>
+body{margin:0;overflow:hidden;background:#070d1f;font-family:Arial}
+#t{position:absolute;top:14px;width:100%;text-align:center;color:#fff;font-weight:900;font-size:18px;text-shadow:0 0 10px #00d2ff;pointer-events:none}
+#l{position:absolute;top:50px;left:10px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.lb{color:#fff;background:rgba(0,0,0,.55);border-left:4px solid;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700}
+#b{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#00d2ff,#3a7bff);color:#000;border:none;padding:15px 32px;border-radius:30px;font-weight:900;font-size:16px;box-shadow:0 0 20px #00d2ff;cursor:pointer}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="t">💻 КОМПЬЮТЕРДІҢ ІШКІ ҚҰРЫЛЫМЫ - 3D</div>
+<div id="l"></div>
+<button id="b">💥 ШАШЫРАТУ</button>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x070d1f);
+const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100);cam.position.set(4.8,3.2,4.2);
+const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(innerWidth,innerHeight);document.body.appendChild(ren.domElement);
+const ctr=new OrbitControls(cam,ren.domElement);ctr.enableDamping=true;
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+const dl=new THREE.DirectionalLight(0xffffff,1);dl.position.set(5,5,5);scene.add(dl);
+const M={
+c:new THREE.MeshStandardMaterial({color:0x1e1e24}),
+b:new THREE.MeshStandardMaterial({color:0x184d2a}),
+cpu:new THREE.MeshStandardMaterial({color:0xf5f5f5}),
+ram:new THREE.MeshStandardMaterial({color:0x101010}),
+gpu:new THREE.MeshStandardMaterial({color:0xc62828}),
+hdd:new THREE.MeshStandardMaterial({color:0xbbbbbb}),
+psu:new THREE.MeshStandardMaterial({color:0x222222})
+};
+const g=new THREE.Group();scene.add(g);const P=[];
+function add(n,m,geo,pos){
+const me=new THREE.Mesh(geo,M[m]);
+me.position.copy(pos);
+me.userData={n,s:pos.clone()};
+g.add(me);P.push(me);
+}
+add("case","c",new THREE.BoxGeometry(5,0.25,4),new THREE.Vector3(0,-1.2,0));
+add("board","b",new THREE.BoxGeometry(4.2,0.08,3.2),new THREE.Vector3(0,-1.02,0));
+add("cpu","cpu",new THREE.BoxGeometry(0.7,0.18,0.7),new THREE.Vector3(-1,-0.85,0.6));
+add("cooler
