@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Компьютердің Ішкі Жады - 3D Модель</title>
+<style>
+  body{margin:0; overflow:hidden; background:#0f172a; font-family:sans-serif}
+  #info{position:absolute; top:15px; left:15px; color:white; background:rgba(0,0,0,0.6); padding:12px 16px; border-radius:12px; line-height:1.5}
+  #info h2{margin:0 0 5px 0; font-size:18px}
+  #hint{position:absolute; bottom:15px; left:50%; transform:translateX(-50%); color:#94a3b8; background:rgba(0,0,0,0.5); padding:8px 14px; border-radius:20px; font-size:13px}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="info">
+  <h2>💾 Ішкі Жад - 3D Модель</h2>
+  🟩 Аналық тақша<br>
+  ⬛ RAM - Жедел жад (4 модуль)<br>
+  🔲 CPU - Орталық процессор<br>
+  💿 HDD - Қатты диск
+</div>
+<div id="hint">Саусақпен айналдыра аласың • 2 саусақпен үлкейт</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0f172a);
+scene.fog = new THREE.Fog(0x0f172a, 8, 15);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(3.5, 2.8, 3.5);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.2;
+
+// Жарық
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+dir.position.set(3,5,2); dir.castShadow=true; scene.add(dir);
+
+// Аналық тақша
+const board = new THREE.Mesh(new THREE.BoxGeometry(5,0.15,3.2), new THREE.MeshStandardMaterial({color:0x1e5631}));
+board.receiveShadow=true; scene.add(board);
+
+// CPU
+const cpu = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.2,0.8), new THREE.MeshStandardMaterial({color:0xcbd5e1, metalness:0.8}));
+cpu.position.set(-0.5,0.18,0); cpu.castShadow=true; scene.add(cpu);
+
+// RAM - ІШКІ ЖАДТЫҢ НЕГІЗІ
+const ramGroup = new THREE.Group();
+for(let i=0;i<4;i++){
+  const ram = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.9,1.8), new THREE.MeshStandardMaterial({color:0x111827}));
+  ram.position.set(1.2 + i*0.35, 0.6, 0.3);
+  ram.castShadow=true;
+  // жарық эффект
+  const chip = new THREE.Mesh(new THREE.BoxGeometry(0.13,0.3,0.35), new THREE.MeshStandardMaterial({color:0x00ff88, emissive:0x00ff88, emissiveIntensity:0.3}));
+  chip.position.copy(ram.position); chip.position.y+=0.1;
+  ramGroup.add(ram, chip);
+}
+scene.add(ramGroup);
+
+// HDD
+const hdd = new THREE.Mesh(new THREE.BoxGeometry(1,0.25,1.4), new THREE.MeshStandardMaterial({color:0xe2e8f0, metalness:0.6}));
+hdd.position.set(0.2,0.2,-1); hdd.castShadow=true; scene.add(hdd);
+
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);});
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  ramGroup.children.forEach((m,i)=>{ m.material.emissiveIntensity = 0.3 + Math.sin(Date.now()*0.003 + i)*0.2; });
+  renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
